@@ -12,23 +12,25 @@ namespace AdobeConnectWebService.Controllers
     [Route("[controller]")]
     public class HomeController : ControllerBase
     {
-       
+
 
         private readonly ILogger<HomeController> _logger;
+        private readonly FileService _fs;
 
-        public HomeController(ILogger<HomeController> logger)
+        public HomeController(ILogger<HomeController> logger, FileService fs)
         {
             _logger = logger;
+            _fs = fs;
         }
 
 
-        [HttpPost(nameof(GetMeetings))]
+        [HttpGet(nameof(GetMeetings))]
         public IActionResult GetMeetings()
         {
+            var data = _fs.GetFiles();
+            return Ok(data);
 
-
-           
         }
-       
+
     }
 }
