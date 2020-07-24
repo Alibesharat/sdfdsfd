@@ -28,7 +28,7 @@ namespace AdobeConnectWebService.Controllers
         [HttpGet(nameof(AddUser))]
         public IActionResult AddUser([FromBody] UserDataViewModel userData)
         {
-            var data = _ad.AddUserDataToGroups(userData);
+            var data = _ad.AddUserDataToMeeting(userData);
             return Ok(data);
         }
 

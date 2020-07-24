@@ -30,7 +30,7 @@ namespace AdobeConnectWebService.Controllers
         public IActionResult AddGroups()
         {
             var data = _fs.GetFiles();
-            var res = _ad.AddGroupsToServers(data);
+            var res = _ad.AddMetingsToServers(data);
             return Ok(res);
         }
 
