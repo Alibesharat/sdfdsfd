@@ -1,5 +1,6 @@
 ﻿using AdobeConectApi.IO;
 using AdobeConectApi.Service;
+using AdobeConnectWebService.ApiViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
@@ -7,18 +8,16 @@ namespace AdobeConnectWebService.Controllers
 {
     [ApiController]
     [Route("[controller]")]
-    public class HomeController : ControllerBase
+    public class UsersController : ControllerBase
     {
 
 
         private readonly ILogger<HomeController> _logger;
-        private readonly FileService _fs;
         private readonly AdobeConnectService _ad;
 
-        public HomeController(ILogger<HomeController> logger, FileService fs, AdobeConnectService ad)
+        public UsersController(ILogger<HomeController> logger, AdobeConnectService ad)
         {
             _logger = logger;
-            _fs = fs;
             _ad = ad;
         }
 
@@ -26,12 +25,11 @@ namespace AdobeConnectWebService.Controllers
         /// ذخیره لیست میتینگ ها در سرورها
         /// </summary>
         /// <returns></returns>
-        [HttpGet(nameof(AddGroups))]
-        public IActionResult AddGroups()
+        [HttpGet(nameof(AddUser))]
+        public IActionResult AddUser([FromBody] UserDataViewModel userData)
         {
-            var data = _fs.GetFiles();
-            var res = _ad.AddGroupsToServers(data);
-            return Ok(res);
+            var data = _ad.AddUserDataToGroups(userData);
+            return Ok(data);
         }
 
 

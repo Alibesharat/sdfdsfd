@@ -1,7 +1,10 @@
-﻿using System;
+﻿using AdobeConectApi.ReadDataViewModel;
+using AdobeConnectWebService.ApiViewModels;
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
-using System.Threading.Tasks;
+using System.Runtime.InteropServices.ComTypes;
 using ViewModels;
 
 namespace AdobeConectApi.Service
@@ -9,7 +12,9 @@ namespace AdobeConectApi.Service
     public class AdobeConnectService
     {
         HttpClient Client;
-        readonly string BaseUrl;
+        readonly string _Domin;
+        readonly string _userName;
+        readonly string _Password;
         const string LoginUrl = "login";
         const string PrincipallistUrl = "principal-list";
         const string ShorcutUrl = "sco-shortcuts";
@@ -17,31 +22,160 @@ namespace AdobeConectApi.Service
         const string UpdatePermissionUrl = "permissions-update";
         const string UpdatePrincipalUrl = "principal-update";
         const string AddUserToGroupUrl = "group-membership-update";
-        public AdobeConnectService(string Ip)
+
+        public AdobeConnectService(string Domin, string UserName, string Password)
         {
             HttpClientHandler clientHandler = new HttpClientHandler();
             clientHandler.ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => { return true; };
             Client = new HttpClient(clientHandler);
 
-            BaseUrl = $"https://{Ip}/api/xml?action=";
+            _Domin = Domin;
         }
 
-
-        public async Task<bool> Login(string UserName, string Password)
+        public List<AddUserResultViewModel> AddUserDataToGroups(UserDataViewModel userData)
         {
-            string parameter = $"&login={UserName}&password={Password}";
-            string url = $"{BaseUrl}{LoginUrl}{parameter}";
-            var data = await Client.GetFromXmlAsync<TokenViewModel>(url);
+            List<AddUserResultViewModel> ls = new List<AddUserResultViewModel>();
+
+            try
+            {
+                object obj = new object();
+                var data = FindMettingOnServers(userData.GroupCode);
+                if (!string.IsNullOrWhiteSpace(data.Item1))
+                {
+
+                    foreach (var item in userData.userInfo)
+                    {
+                        lock (obj)
+                        {
+                            var res = AddUser(data.Item1, item.Name, item.UserName, item.Password);
+
+                            if (res.Status?.Code == "Ok")
+                            {
+                                lock (obj)
+                                {
+                                    var result = AddUserToGroupASync(data.Item2, res.Principal.Principalid);
+                                    if (res.Status.Code == "Ok")
+                                    {
+                                        ls.Add(new AddUserResultViewModel() { UserName = item.UserName, SeverAddress = data.Item1, GroupName = data.Item2, IsSucess = true });
+                                    }
+                                }
+                            }
+                        }
+
+                    }
+                }
+                else
+                {
+                    ls.Add(new AddUserResultViewModel() { UserName = "", SeverAddress = "", GroupName = userData.GroupCode, IsSucess = false, ExMessage = "گروه یافت نشد" });
+
+                }
+            }
+            catch (Exception ex)
+            {
+
+                ls.Add(new AddUserResultViewModel() { UserName = "", SeverAddress = "", GroupName = userData.GroupCode, IsSucess = false, ExMessage = ex.Message });
+            }
+
+            return ls;
+        }
+
+        private (string, string) FindMettingOnServers(string Id)
+        {
+            object obj = new object();
+            List<string> servers = new List<string>();
+            for (int i = 1; i < 51; i++)
+            {
+                servers.Add($"ac{i}");
+            }
+            foreach (var server in servers)
+            {
+                string Address = $@"{server}.{_Domin}";
+                Console.WriteLine($"== Search in  {Address}");
+                if (Login(Address))
+                {
+                    lock (obj)
+                    {
+
+                        var gr = FindUser(Address, "login", Id);
+                        if (gr != null && gr.Status.Code == "ok")
+                        {
+                            if (gr.Principallist.Principal.Count() > 0)
+                            {
+                                var id = gr.Principallist.Principal.FirstOrDefault().Principalid;
+                                return (Address, id);
+                            }
+
+
+
+                        }
+                        return ("", "");
+                    }
+                }
+                else
+                {
+                    throw new Exception($"Can not Login With UserName {_userName} And Password {_Password} on Server {Address}");
+                }
+            }
+            return "";
+        }
+
+        public List<AddGroupResultViewModel> AddGroupsToServers(List<FileViewModel> data)
+        {
+            object obj = new object();
+            List<AddGroupResultViewModel> vm = new List<AddGroupResultViewModel>();
+            foreach (var item in data)
+            {
+                lock (obj)
+                {
+                    string ServerUrl = $"http://{item.ServerName}.{_Domin}/api/xml?action=";
+                    if (Login(ServerUrl))
+                    {
+                        lock (obj)
+                        {
+                            foreach (var file in item.Files)
+                            {
+                                try
+                                {
+                                    var res = AddGroup(ServerUrl, file.Key, $"Gr{file.Key}");
+                                    if (res.Status?.Code == "Ok")
+                                    {
+                                        vm.Add(new AddGroupResultViewModel() { GroupName = file.Key, SeverAddress = ServerUrl, IsSucess = true });
+                                    }
+                                    else
+                                    {
+                                        vm.Add(new AddGroupResultViewModel() { GroupName = file.Key, SeverAddress = ServerUrl, IsSucess = false, ExMessage = res.Status.Code });
+
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+
+                                    vm.Add(new AddGroupResultViewModel() { GroupName = file.Key, SeverAddress = ServerUrl, IsSucess = false, ExMessage = ex.Message });
+                                }
+                            }
+                        }
+                    }
+                }
+
+            }
+            return vm;
+        }
+
+        private bool Login(string ServerAddress)
+        {
+            string parameter = $"&login={_userName}&password={_Password}";
+            string url = $"{ServerAddress}{LoginUrl}{parameter}";
+            var data = Client.GetFromXmlAsync<TokenViewModel>(url);
             if (data.Status.Code == "ok")
             {
                 //Client.DefaultRequestHeaders.Add("Token", data.OWASP_CSRFTOKEN.Token);
                 //string cookie = "BREEZESESSION=breez3mpwg7bimtm68z7r; BreezeCCookie=conn-E0Y4-VSKE-357P-XDIU-7CFU-619U-61LO-65MS; BreezeLoginCookie=connect@ili.ir";
                 //Client.DefaultRequestHeaders.Add("cookie", cookie);
-                Console.WriteLine($"Login Sucees : user {UserName}");
+                Console.WriteLine($"Login Sucees : user {_userName}");
                 return true;
 
             }
-            Console.WriteLine($"Login faild : user {UserName}");
+            Console.WriteLine($"Login faild : user {_userName}");
             return false;
 
 
@@ -49,28 +183,28 @@ namespace AdobeConectApi.Service
 
 
 
-        public async Task<object> GetPrincipallist()
+        private object GetPrincipallist()
         {
             string url = $"{BaseUrl}{PrincipallistUrl}";
-            var data = await Client.GetFromXmlAsync<object>(url);
+            var data = Client.GetFromXmlAsync<object>(url);
             return data;
         }
 
 
-        public async Task<ShortCutViewModel> GetShortCut()
+        private ShortCutViewModel GetShortCut()
         {
             string url = $"{BaseUrl}{ShorcutUrl}";
-            var data = await Client.GetFromXmlAsync<ShortCutViewModel>(url);
+            var data = Client.GetFromXmlAsync<ShortCutViewModel>(url);
             return data;
         }
 
 
-        private async Task<string> GetFolderId()
+        private string GetFolderId()
         {
             try
             {
                 string url = $"{BaseUrl}{ShorcutUrl}";
-                var data = await Client.GetFromXmlAsync<ShortCutViewModel>(url);
+                var data = Client.GetFromXmlAsync<ShortCutViewModel>(url);
                 string FolderId = data.Shortcuts.Folders.FirstOrDefault(c => c.Type == "meetings").Scoid;
                 return FolderId;
             }
@@ -84,9 +218,9 @@ namespace AdobeConectApi.Service
 
 
 
-        public async Task<MeetingViewModel> AddMeetingAddParticapnts(string Name, string AddressPath, string GroupId)
+        public MeetingViewModel AddMeetingAddParticapnts(string Name, string AddressPath, string GroupId)
         {
-            string FolderId = await GetFolderId();
+            string FolderId = GetFolderId();
             string StartDate = "2006-10-01T09:00";
             string EndDate = "2006-10-01T17:00";
             string Descripton = "this a new meting";
@@ -95,12 +229,12 @@ namespace AdobeConectApi.Service
                 $"&type=meeting&lang=en&date-begin={StartDate}&date-end={EndDate}" +
                 $"&url-path={AddressPath}";
             string url = $"{BaseUrl}{AddMeetingUrl}{parameters}";
-            var data = await Client.GetFromXmlAsync<MeetingViewModel>(url);
+            var data = Client.GetFromXmlAsync<MeetingViewModel>(url);
             if (data.Status.Code == "ok")
             {
-                var res = await SetPermissionToMeeting(data.Sco.Scoid, "public-access", "denied");
+                var res = SetPermissionToMeeting(data.Sco.Scoid, "public-access", "denied");
                 Console.WriteLine($"Set Permisson for {Name} : {res.Status.Code} - remove ");
-                res = await SetPermissionToMeeting(data.Sco.Scoid, GroupId, "view");
+                res = SetPermissionToMeeting(data.Sco.Scoid, GroupId, "view");
                 Console.WriteLine($"Set Permisson for {Name} : {res.Status.Code} - view ");
 
 
@@ -112,10 +246,10 @@ namespace AdobeConectApi.Service
         public stateViewModel AddHostToMeeting(MeetingViewModel data, string GroupId)
         {
 
-            var e = SetPermissionToMeeting(data.Sco.Scoid, GroupId, "view").Result;
+            var e = SetPermissionToMeeting(data.Sco.Scoid, GroupId, "view");
             Console.WriteLine($"Set Permisson for {GroupId} : {e.Status.Code} - view ");
 
-            var res = SetPermissionToMeeting(data.Sco.Scoid, GroupId, "host").Result;
+            var res = SetPermissionToMeeting(data.Sco.Scoid, GroupId, "host");
             Console.WriteLine($"Set Permisson for {GroupId} : {res.Status.Code} - host ");
 
             return res;
@@ -124,10 +258,10 @@ namespace AdobeConectApi.Service
         public stateViewModel AddHostToMeeting(string mettingId, string GroupId)
         {
 
-            var e = SetPermissionToMeeting(mettingId, GroupId, "view").Result;
+            var e = SetPermissionToMeeting(mettingId, GroupId, "view");
             Console.WriteLine($"Set Permisson for {GroupId} : {e.Status.Code} - view ");
 
-            var res = SetPermissionToMeeting(mettingId, GroupId, "host").Result;
+            var res = SetPermissionToMeeting(mettingId, GroupId, "host");
             Console.WriteLine($"Set Permisson for {GroupId} : {res.Status.Code} - host ");
             if (res.Status.Code == "no-access")
             {
@@ -143,49 +277,66 @@ namespace AdobeConectApi.Service
         }
 
 
-        private async Task<stateViewModel> SetPermissionToMeeting(string SCoId, string principalid, string accessmodifer)
+        private stateViewModel SetPermissionToMeeting(string SCoId, string principalid, string accessmodifer)
         {
             string parameter = $"&acl-id={SCoId}&principal-id={principalid}&permission-id={accessmodifer}";
             string updateurl = $"{BaseUrl}{UpdatePermissionUrl}{parameter}";
-            var data = await Client.GetFromXmlAsync<stateViewModel>(updateurl);
+            var data = Client.GetFromXmlAsync<stateViewModel>(updateurl);
             return data;
 
         }
 
 
 
-        public async Task<UserViewModel> AddUserAsync(string Name, string lastName, string login, string Password)
+        public UserViewModel AddUser(string ServerAddres, string Name, string login, string Password)
         {
-            string parameters = $"&first-name={Name}" +
-                $"&last-name={lastName}&login={login}" +
-                $"&password={Password}&type=user&has-children=0";
-            string url = $"{BaseUrl}{UpdatePrincipalUrl}{parameters}";
-            var data = await Client.GetFromXmlAsync<UserViewModel>(url);
-            return data;
+            try
+            {
+                string parameters = $"&first-name={Name}" +
+               $"&last-name=''&login={login}" +
+               $"&password={Password}&type=user&has-children=0";
+                string url = $"{ServerAddres}{UpdatePrincipalUrl}{parameters}";
+                var data = Client.GetFromXmlAsync<UserViewModel>(url);
+                return data;
+            }
+            catch (Exception ex)
+            {
+
+                throw ex;
+            }
+
         }
 
 
-        public async Task<UserViewModel> AddGroupAsync(string Name, string Description)
+        public UserViewModel AddGroup(string ServerAddress, string Name, string Description)
         {
+            try
+            {
+                string parameters = $"&name={Name}" +
+              $"&login={Name}&display-uid={Name}" +
+              $"&description={Description}&type=group&has-children=1";
+                string url = $"{ServerAddress}{UpdatePrincipalUrl}{parameters}";
+                var data = Client.GetFromXmlAsync<UserViewModel>(url);
+                return data;
+            }
+            catch (Exception ex)
+            {
 
-            string parameters = $"&name={Name}" +
-                $"&login={Name}&display-uid={Name}" +
-                $"&description={Description}&type=group&has-children=1";
-            string url = $"{BaseUrl}{UpdatePrincipalUrl}{parameters}";
-            var data = await Client.GetFromXmlAsync<UserViewModel>(url);
-            return data;
+                throw ex;
+            }
+
         }
 
 
 
 
 
-        public async Task<stateViewModel> AddUserToGroupASync(string GroupId, string UserId)
+        public stateViewModel AddUserToGroupASync(string GroupId, string UserId)
         {
 
             string parameters = $"&group-id={GroupId}&principal-id={UserId}&is-member=true";
             string url = $"{BaseUrl}{AddUserToGroupUrl}{parameters}";
-            var data = await Client.GetFromXmlAsync<stateViewModel>(url);
+            var data = Client.GetFromXmlAsync<stateViewModel>(url);
             Console.WriteLine($"user :{UserId} Add To group : {GroupId} ... {data.Status.Code}");
             if (data.Status.Code == "ok")
             {
@@ -196,16 +347,19 @@ namespace AdobeConectApi.Service
             {
                 var newid = int.Parse(GroupId) - 1;
                 Console.WriteLine($"new Id : {newid}");
-                return await AddUserToGroupASync(newid.ToString(), UserId);
+                return AddUserToGroupASync(newid.ToString(), UserId);
             }
         }
 
 
-        public async Task<PrincipalViewModel> FindUserAsync(string key, string value)
+        public PrincipalViewModel FindUser(string ServerAddress, string key, string value)
         {
-            string url = $"{BaseUrl}{PrincipallistUrl}&filter-{key}={value}";
-            var data = await Client.GetFromXmlAsync<PrincipalViewModel>(url);
+
+            string url = $"{ServerAddress}{PrincipallistUrl}&filter-{key}={value}";
+            var data = Client.GetFromXmlAsync<PrincipalViewModel>(url);
             return data;
+
+
         }
     }
 }

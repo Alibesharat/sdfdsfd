@@ -35,11 +35,11 @@ namespace AdobeConectApi
         /// <param name="client"></param>
         /// <param name="url"></param>
         /// <returns></returns>
-        public static async Task<T> GetFromXmlAsync<T>(this HttpClient client, string url)
+        public static  T GetFromXmlAsync<T>(this HttpClient client, string url)
         {
             try
             {
-                var data = await client.GetStringAsync(url);
+                var data =  client.GetStringAsync(url).Result;
                 if (data == null) throw new System.Exception($"Can not get data from {url}");
                 var res = data.Serilaze<T>();
                 if (res == null) throw new System.Exception($"can not serilaze data from {url} to type {typeof(T)}");
