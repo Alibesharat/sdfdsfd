@@ -6,7 +6,6 @@ namespace AdobeConnectWebService.ApiViewModels
     {
 
         public List<UserInfoViewModel> userInfo { get; set; }
-        public string GroupCode { get; set; }
     }
 
     public class UserInfoViewModel
@@ -16,5 +15,8 @@ namespace AdobeConnectWebService.ApiViewModels
         public string Password { get; set; }
 
         public bool IsTeacher { get; set; }
+
+        public string GroupCode { get; set; }
+
     }
 }

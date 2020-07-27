@@ -6,11 +6,11 @@ namespace AdobeConectApi.ReadDataViewModel
     {
         public FileViewModel()
         {
-            Files = new Dictionary<string, string>();
+            Mettings = new List<string>();
         }
         public string ServerName { get; set; }
 
-       public Dictionary<string, string> Files { get; set; }
+       public List<string> Mettings { get; set; }
 
     }
 }

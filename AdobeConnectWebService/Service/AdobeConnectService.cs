@@ -21,62 +21,58 @@ namespace AdobeConectApi.Service
         const string UpdatePermissionUrl = "permissions-update";
         const string UpdatePrincipalUrl = "principal-update";
         const string AddUserToGroupUrl = "group-membership-update";
+        const int ServerCout = 110;
 
         public AdobeConnectService(string Domin, string UserName, string Password)
         {
             HttpClientHandler clientHandler = new HttpClientHandler();
             clientHandler.ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => { return true; };
             Client = new HttpClient(clientHandler);
-
             _Domin = Domin;
         }
 
-        public List<AddUserResultViewModel> AddUserDataToMeeting(UserDataViewModel userData)
+        public List<AddUserResultViewModel> AddUserDataToMeeting(UserInfoViewModel userData, List<FileViewModel> meetings)
         {
             List<AddUserResultViewModel> ls = new List<AddUserResultViewModel>();
 
             try
             {
                 object obj = new object();
-                var data = FindMettingOnServers(userData.GroupCode);
-              
-                if (!string.IsNullOrWhiteSpace(data.Item1))
+                var serverName = GetServerName(meetings, userData.GroupCode);
+                string meetingId = "";
+                if (!string.IsNullOrWhiteSpace(serverName))
                 {
-                    var gr = AddGroup(data.Item1, GetUniqName(), $"Group for {userData.GroupCode}");
+                    meetingId = FindMettingOnServers(serverName, userData.GroupCode);
+                    var gr = AddGroup(serverName, GetUniqName(), $"Group for {userData.GroupCode}");
                     if (gr.Status.Code == "ok")
                     {
                         //BUGBUG : ممکن ScoId   به جای آیدی میتیتنگ احتیاج باشد
 
-                        var SetGroupToMeeting = SetPermmionUserToMeeting(data.Item1, data.Item2, gr.Principal.Principalid);
+                        var SetGroupToMeeting = SetPermmionUserToMeeting(serverName, meetingId, gr.Principal.Principalid);
 
-                        foreach (var item in userData.userInfo)
+
+                        var res = AddUser(serverName, userData.Name, userData.UserName, userData.Password);
+
+                        if (res.Status?.Code == "Ok")
                         {
                             lock (obj)
                             {
-                                var res = AddUser(data.Item1, item.Name, item.UserName, item.Password);
-
-                                if (res.Status?.Code == "Ok")
+                                if (userData.IsTeacher)
                                 {
-                                    lock (obj)
+                                    SetPermmionHostToMeeting(serverName, meetingId, res.Principal.Principalid);
+                                }
+                                else
+                                {
+                                    var result = AddUserToGroup(serverName, gr.Principal.Principalid, res.Principal.Principalid);
+                                    if (res.Status.Code == "Ok")
                                     {
-                                        if (item.IsTeacher)
-                                        {
-                                            SetPermmionHostToMeeting(data.Item1, data.Item2, res.Principal.Principalid);
-                                        }
-                                        else
-                                        {
-                                            var result = AddUserToGroup(data.Item1, gr.Principal.Principalid, res.Principal.Principalid);
-                                            if (res.Status.Code == "Ok")
-                                            {
-                                                ls.Add(new AddUserResultViewModel() { UserName = item.UserName, SeverAddress = data.Item1, MettingName = data.Item2, IsSucess = true });
-                                            }
-                                        }
-                                       
+                                        ls.Add(new AddUserResultViewModel() { UserName = userData.UserName, SeverAddress = serverName, MettingName = meetingId, IsSucess = true });
                                     }
                                 }
-                            }
 
+                            }
                         }
+
 
                     }
                     else
@@ -94,61 +90,67 @@ namespace AdobeConectApi.Service
             catch (Exception ex)
             {
 
-                ls.Add(new AddUserResultViewModel() { UserName = "", SeverAddress = "", GroupName = userData.GroupCode, IsSucess = false, ExMessage = ex.Message });
+                ls.Add(new AddUserResultViewModel() { UserName = "", SeverAddress = "", MettingName = userData.GroupCode, IsSucess = false, ExMessage = ex.Message });
             }
 
             return ls;
         }
 
+        private string GetServerName(List<FileViewModel> meetings, string groupCode)
+        {
+            foreach (var file in meetings)
+            {
+                if (file.Mettings.Contains(groupCode))
+                {
+                    return file.ServerName;
+                }
+            }
+            return "";
+        }
+
         private string GetUniqName()
         {
-           return Guid.NewGuid().ToString().Substring(4, 10);
+            return Guid.NewGuid().ToString().Substring(4, 10);
         }
 
-        /// <summary>
-        /// ServerAddress,MettingId
-        /// </summary>
-        /// <param name="Id"></param>
-        /// <returns>ServerAddress,MettingId</returns>
-        private (string, string) FindMettingOnServers(string Id)
+        
+        private string  FindMettingOnServers(string ServerName, string Id)
         {
             object obj = new object();
-            List<string> servers = new List<string>();
-            for (int i = 1; i < 51; i++)
+
+            string Address = $@"{ServerName}.{_Domin}";
+            Console.WriteLine($"== Search in  {Address}");
+            if (Login(Address))
             {
-                servers.Add($"ac{i}");
-            }
-            foreach (var server in servers)
-            {
-                string Address = $@"{server}.{_Domin}";
-                Console.WriteLine($"== Search in  {Address}");
-                if (Login(Address))
+                lock (obj)
                 {
-                    lock (obj)
+
+                    var gr = FindUser(Address, "login", Id);
+                    if (gr != null && gr.Status.Code == "ok")
                     {
-
-                        var gr = FindUser(Address, "login", Id);
-                        if (gr != null && gr.Status.Code == "ok")
+                        if (gr.Principallist.Principal.Count() > 0)
                         {
-                            if (gr.Principallist.Principal.Count() > 0)
-                            {
-                                var id = gr.Principallist.Principal.FirstOrDefault().Principalid;
-                                return (Address, id);
-                            }
-
-
-
+                            var id = gr.Principallist.Principal.FirstOrDefault().Principalid;
+                            return (id);
                         }
-                        return ("", "");
+
+
+
                     }
-                }
-                else
-                {
-                    throw new Exception($"Can not Login With UserName {_userName} And Password {_Password} on Server {Address}");
+                    return "";
                 }
             }
-            return ("", "");
+            else
+            {
+                throw new Exception($"Can not Login With UserName {_userName} And Password {_Password} on Server {Address}");
+            }
+
         }
+
+
+
+
+      
 
         public List<AddMettingResultViewModel> AddMetingsToServers(List<FileViewModel> data)
         {
@@ -163,37 +165,37 @@ namespace AdobeConectApi.Service
                     {
                         lock (obj)
                         {
-                            foreach (var file in item.Files)
+                            foreach (var file in item.Mettings)
                             {
                                 try
                                 {
-                                
-                                    var res = AddMeeting(ServerUrl, file.Key, $"c{file.Key}");
+
+                                    var res = AddMeeting(ServerUrl, file, $"c{file}");
                                     if (res.Status?.Code == "Ok")
                                     {
-                                      
+
                                         var result = SetPermission(ServerUrl, res.Sco.Scoid, "public-access", "denied");
                                         if (result.Status.Code == "ok")
                                         {
-                                            vm.Add(new AddMettingResultViewModel() { MettingName = file.Key, SeverAddress = ServerUrl, IsSucess = true, Permission = "denied" });
+                                            vm.Add(new AddMettingResultViewModel() { MettingName = file, SeverAddress = ServerUrl, IsSucess = true, Permission = "denied" });
 
                                         }
                                         else
                                         {
-                                            vm.Add(new AddMettingResultViewModel() { MettingName = file.Key, SeverAddress = ServerUrl, IsSucess = true, Permission = "Noting" });
+                                            vm.Add(new AddMettingResultViewModel() { MettingName = file, SeverAddress = ServerUrl, IsSucess = true, Permission = "Noting" });
 
                                         }
                                     }
                                     else
                                     {
-                                        vm.Add(new AddMettingResultViewModel() { MettingName = file.Key, SeverAddress = ServerUrl, IsSucess = false, ExMessage = res.Status.Code });
+                                        vm.Add(new AddMettingResultViewModel() { MettingName = file, SeverAddress = ServerUrl, IsSucess = false, ExMessage = res.Status.Code });
 
                                     }
                                 }
                                 catch (Exception ex)
                                 {
 
-                                    vm.Add(new AddMettingResultViewModel() { MettingName = file.Key, SeverAddress = ServerUrl, IsSucess = false, ExMessage = ex.Message });
+                                    vm.Add(new AddMettingResultViewModel() { MettingName = file, SeverAddress = ServerUrl, IsSucess = false, ExMessage = ex.Message });
                                 }
                             }
                         }
@@ -226,10 +228,10 @@ namespace AdobeConectApi.Service
 
 
 
-      
 
 
-      
+
+
         private string GetFolderId(string ServerAddress)
         {
             try
@@ -269,7 +271,7 @@ namespace AdobeConectApi.Service
         }
 
 
-       
+
 
         private stateViewModel SetPermmionHostToMeeting(string ServerAddress, string mettingId, string PrinciaplId)
         {
@@ -364,7 +366,7 @@ namespace AdobeConectApi.Service
 
 
 
-        private (stateViewModel,string) AddUserToGroup(string ServerAddress, string GroupId, string UserId)
+        private (stateViewModel, string) AddUserToGroup(string ServerAddress, string GroupId, string UserId)
         {
 
             string parameters = $"&group-id={GroupId}&principal-id={UserId}&is-member=true";
@@ -372,8 +374,8 @@ namespace AdobeConectApi.Service
             var data = Client.GetFromXmlAsync<stateViewModel>(url);
             if (data.Status.Code == "ok")
             {
-                
-                return (data,GroupId);
+
+                return (data, GroupId);
 
             }
             else

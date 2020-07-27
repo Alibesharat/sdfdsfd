@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AdobeConectApi.IO;
+using AdobeConectApi.Service;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
@@ -32,7 +33,8 @@ namespace AdobeConnectWebService
 
 
             services.AddControllers();
-            services.AddSingleton(C=>new FileService(ReadDataPath));
+            services.AddSingleton(C => new FileService(ReadDataPath));
+            services.AddSingleton(C => new AdobeConnectService(baseadress, username, password));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

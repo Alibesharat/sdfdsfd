@@ -1,4 +1,5 @@
 ﻿using AdobeConectApi.ReadDataViewModel;
+using Microsoft.Extensions.Hosting;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -46,43 +47,37 @@ namespace AdobeConectApi.IO
         }
 
 
-        public List<FileViewModel> GetFiles()
+        public List<FileViewModel> GetMeetings(string rootpath)
         {
             List<FileViewModel> lst = new List<FileViewModel>();
 
-            foreach (var Folder in Directory.GetDirectories(_Path))
+
+            string FullPath = Path.Combine(rootpath, _Path);
+            FileViewModel vm = new FileViewModel();
+            foreach (var thisPath in Directory.GetFiles(FullPath))
             {
 
+                string filename = Path.GetFileNameWithoutExtension(thisPath);
+                vm.ServerName = filename;
+                try
+                {
+                    vm.Mettings = File.ReadAllLines(thisPath).ToList();
 
-                FileViewModel vm = new FileViewModel()
-                { ServerName = Folder.Split('\\').LastOrDefault() };
-                foreach (var thisPath in Directory.GetFiles(Folder))
+                }
+                catch (Exception)
                 {
 
-                    string filename = Path.GetFileNameWithoutExtension(thisPath);
-                    //filename = filename.Split("-")[0];
-                    try
-                    {
-                        vm.Files.Add(filename, thisPath);
-
-                    }
-                    catch (Exception)
-                    {
-
-                        Console.WriteLine(filename);
-                        continue;
-                    }
-
+                    Console.WriteLine(filename);
+                    continue;
                 }
                 lst.Add(vm);
 
-
             }
-
-
 
             return lst;
         }
+
+       
 
         public void LogGetRepeaded()
         {
@@ -107,7 +102,7 @@ namespace AdobeConectApi.IO
                         var data = dic.FirstOrDefault(c => c.Key == filename);
                         string newServerName = data.Value.Split('\\').FirstOrDefault();
 
-                        Console.WriteLine($"({i}) {filename} - {ServerName} -- {data.Key} - {newServerName}" );
+                        Console.WriteLine($"({i}) {filename} - {ServerName} -- {data.Key} - {newServerName}");
                         i++;
                         continue;
                     }
