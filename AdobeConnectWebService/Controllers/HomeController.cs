@@ -34,10 +34,27 @@ namespace AdobeConnectWebService.Controllers
         [HttpGet(nameof(AddGroups))]
         public IActionResult AddGroups()
         {
-            var data = _fs.GetMeetings(_env.ContentRootPath);
-            var res = _ad.AddMetingsToServers(data);
-            return Ok(res);
+            try
+            {
+                var data = _fs.GetMeetings(_env.ContentRootPath);
+                var res = _ad.AddMetingsToServers(data);
+                return Ok(res);
+            }
+            catch (System.Exception ex)
+            {
+
+                return Ok(ex.Message);
+            }
+           
         }
+
+
+
+
+
+
+
+
 
 
 

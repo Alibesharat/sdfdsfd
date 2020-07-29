@@ -51,8 +51,8 @@ namespace AdobeConectApi.IO
         {
             List<FileViewModel> lst = new List<FileViewModel>();
 
-
-            string FullPath = Path.Combine(rootpath, _Path);
+           
+            string FullPath = Path.Combine(rootpath,"wwwroot", _Path);
             FileViewModel vm = new FileViewModel();
             foreach (var thisPath in Directory.GetFiles(FullPath))
             {

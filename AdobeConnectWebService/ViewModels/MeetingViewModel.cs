@@ -49,6 +49,16 @@ namespace ViewModels
 		public string Accountid { get; set; }
 	}
 
+
+
+	[XmlRoot(ElementName = "scos")]
+	public class Scos
+	{
+		[XmlElement(ElementName = "sco")]
+		public Sco Sco { get; set; }
+	}
+
+
 	[XmlRoot(ElementName = "results")]
 	public class MeetingViewModel
 	{
@@ -57,5 +67,18 @@ namespace ViewModels
 		[XmlElement(ElementName = "sco")]
 		public Sco Sco { get; set; }
 	}
+
+
+	[XmlRoot(ElementName = "results")]
+	public class MeetingsViewModel
+	{
+		[XmlElement(ElementName = "status")]
+		public Status Status { get; set; }
+		[XmlElement(ElementName = "scos")]
+		public Scos Scos { get; set; }
+	}
+
+
+
 
 }

@@ -36,10 +36,10 @@ namespace AdobeConnectWebService.Controllers
 
 
         /// <summary>
-        /// ذخیره لیست میتینگ ها در سرورها
+        /// ذخیره یوزر در میتینگ
         /// </summary>
         /// <returns></returns>
-        [HttpGet(nameof(AddUser))]
+        [HttpPost(nameof(AddUser))]
         public IActionResult AddUser([FromBody] UserInfoViewModel userData)
         {
             var meetings = _fs.GetMeetings(_env.ContentRootPath);

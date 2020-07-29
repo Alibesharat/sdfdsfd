@@ -27,7 +27,7 @@ namespace AdobeConnectWebService
         public void ConfigureServices(IServiceCollection services)
         {
             string baseadress = Configuration.GetSection("baseadress").Value;
-            string username = Configuration.GetSection("username").Value;
+            string username = Configuration.GetSection("user").Value;
             string password = Configuration.GetSection("password").Value;
             string ReadDataPath = Configuration.GetSection("ReadDataPath").Value;
 
@@ -35,6 +35,8 @@ namespace AdobeConnectWebService
             services.AddControllers();
             services.AddSingleton(C => new FileService(ReadDataPath));
             services.AddSingleton(C => new AdobeConnectService(baseadress, username, password));
+            services.AddSwaggerGen();
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -44,7 +46,11 @@ namespace AdobeConnectWebService
             {
                 app.UseDeveloperExceptionPage();
             }
-
+            app.UseSwagger();
+            app.UseSwaggerUI(c =>
+            {
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
+            });
             app.UseRouting();
 
             app.UseAuthorization();
