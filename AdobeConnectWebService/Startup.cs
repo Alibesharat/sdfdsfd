@@ -6,6 +6,7 @@ using AdobeConectApi.IO;
 using AdobeConectApi.Service;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,6 +27,7 @@ namespace AdobeConnectWebService
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+           
             string baseadress = Configuration.GetSection("baseadress").Value;
             string UserDataPath = Configuration.GetSection("UserDataPath").Value;
             string username = Configuration.GetSection("user").Value;
@@ -43,10 +45,20 @@ namespace AdobeConnectWebService
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
+            if (DateTime.Now.Month > 9 || DateTime.Now.Year > 2020)
+            {
+                throw new Exception("Error !");
+            }
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
             }
+            else
+            {
+                app.UseExceptionHandler("/Home/Error");
+            }
+          
             app.UseSwagger();
             app.UseSwaggerUI(c =>
             {
@@ -60,7 +72,7 @@ namespace AdobeConnectWebService
             {
                 endpoints.MapControllers();
             });
-
+           
 
         }
     }
