@@ -9,6 +9,10 @@
     <PackageReference Include="System.Data.OleDb" Version="4.7.0" />
 
   </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="wwwroot\UserData\" />
+  </ItemGroup>
   <PropertyGroup>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>

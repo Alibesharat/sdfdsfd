@@ -1,6 +1,7 @@
 ﻿using AdobeConectApi.IO;
 using AdobeConectApi.Service;
 using AdobeConnectWebService.ApiViewModels;
+using AdobeConnectWebService.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -27,7 +28,7 @@ namespace AdobeConnectWebService.Controllers
             _env = env;
         }
 
-       
+
 
 
         /// <summary>
@@ -53,7 +54,7 @@ namespace AdobeConnectWebService.Controllers
         public IActionResult FindClass(string UserName)
         {
             var data = _fs.GetUsers(_env.ContentRootPath);
-            var infos = data.Where(c => c.UserName == UserName).Select(c => new { c.url,c.Date});
+            var infos = data.Where(c => c.UserName == UserName).Select(c => new AddressViewmodels() { Date = c.Date, Url = c.url, }).ToList();
             return Ok(infos);
         }
 
