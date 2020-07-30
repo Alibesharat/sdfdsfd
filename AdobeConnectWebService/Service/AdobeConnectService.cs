@@ -42,34 +42,38 @@ namespace AdobeConectApi.Service
             {
                 object obj = new object();
                 var serverName = GetServerName(meetings, userData.GroupCode);
-                string ScoId = "";
                 if (!string.IsNullOrWhiteSpace(serverName))
                 {
-                    ScoId = FindMettingOnServers(serverName, userData.GroupCode);
+                    var meeting = FindMettingOnServers(serverName, userData.GroupCode);
                     var gr = AddGroup(serverName, GetUniqName(), $"Group for {userData.GroupCode}");
                     if (gr.Status.Code == "ok")
                     {
                         string Address = $@"http://{serverName}.{_Domin}/api/xml?action=";
 
-                        var SetGroupToMeeting = SetPermmionUserToMeeting(Address, ScoId, gr.Principal.Principalid);
+                        var SetGroupToMeeting = SetPermmionUserToMeeting(Address, meeting.id, gr.Principal.Principalid);
 
 
                         var res = AddUser(Address, userData.Name, userData.UserName, userData.Password);
 
-                        if (res.Status?.Code == "Ok")
+                        if (res.Status?.Code == "ok")
                         {
                             lock (obj)
                             {
                                 if (userData.IsTeacher)
                                 {
-                                    SetPermmionHostToMeeting(Address, ScoId, res.Principal.Principalid);
+                                   var state= SetPermmionHostToMeeting(Address, meeting.id, res.Principal.Principalid);
+                                    if (state.Status.Code == "ok")
+                                    {
+                                        ls.Add(new AddUserResultViewModel() { UserName = userData.UserName, url =$"http://{serverName}.{_Domin}/{ meeting.url}", IsSucess = true });
+
+                                    }
                                 }
                                 else
                                 {
                                     var result = AddUserToGroup(Address, gr.Principal.Principalid, res.Principal.Principalid);
-                                    if (res.Status.Code == "Ok")
+                                    if (res.Status.Code == "ok")
                                     {
-                                        ls.Add(new AddUserResultViewModel() { UserName = userData.UserName, SeverAddress = serverName, MettingName = ScoId, IsSucess = true });
+                                        ls.Add(new AddUserResultViewModel() { UserName = userData.UserName, url = $"http://{serverName}.{_Domin}/{ meeting.url}", IsSucess = true });
                                     }
                                 }
 
@@ -80,20 +84,20 @@ namespace AdobeConectApi.Service
                     }
                     else
                     {
-                        ls.Add(new AddUserResultViewModel() { UserName = "", SeverAddress = "", MettingName = userData.GroupCode, IsSucess = false, ExMessage = "گروه اضافه نشد " });
+                        ls.Add(new AddUserResultViewModel() { UserName = "",  url = userData.GroupCode, IsSucess = false, ExMessage = "گروه اضافه نشد " });
 
                     }
                 }
                 else
                 {
-                    ls.Add(new AddUserResultViewModel() { UserName = "", SeverAddress = "", MettingName = userData.GroupCode, IsSucess = false, ExMessage = "گروه یافت نشد" });
+                    ls.Add(new AddUserResultViewModel() { UserName = "",  url = userData.GroupCode, IsSucess = false, ExMessage = "گروه یافت نشد" });
 
                 }
             }
             catch (Exception ex)
             {
 
-                ls.Add(new AddUserResultViewModel() { UserName = "", SeverAddress = "", MettingName = userData.GroupCode, IsSucess = false, ExMessage = ex.Message });
+                ls.Add(new AddUserResultViewModel() { UserName = "", IsSucess = false, ExMessage = ex.Message });
             }
 
             return ls;
@@ -117,7 +121,7 @@ namespace AdobeConectApi.Service
         }
 
 
-        private string FindMettingOnServers(string ServerName, string Id)
+        private (string id,string url) FindMettingOnServers(string ServerName, string Id)
         {
             object obj = new object();
 
@@ -134,13 +138,13 @@ namespace AdobeConectApi.Service
                         if (gr.Scos != null)
                         {
                             var id = gr.Scos.Sco.Scoid;
-                            return (id);
+                            return (id,gr.Scos.Sco.Urlpath);
                         }
 
 
 
                     }
-                    return "";
+                    return ("","");
                 }
             }
             else
