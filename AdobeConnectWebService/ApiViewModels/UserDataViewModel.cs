@@ -19,5 +19,7 @@ namespace AdobeConnectWebService.ApiViewModels
 
         public string GroupCode { get; set; }
 
+        public string Date { get; set; }
+
     }
 }

@@ -73,7 +73,7 @@ namespace AdobeConectApi.Service
                                     var result = AddUserToGroup(Address, gr.Principal.Principalid, res.Principal.Principalid);
                                     if (res.Status.Code == "ok")
                                     {
-                                        model = new AddUserResultViewModel() { UserName = userData.UserName, url = $@"http://{serverName}.{_Domin}/{ meeting.url}", IsSucess = true };
+                                        model = new AddUserResultViewModel() {Date=userData.Date, UserName = userData.UserName, url = $@"http://{serverName}.{_Domin}/{ meeting.url}", IsSucess = true };
                                     }
                                 }
 
@@ -81,7 +81,7 @@ namespace AdobeConectApi.Service
                         }
                         else
                         {
-                            model = new AddUserResultViewModel() { UserName = userData.UserName, url = $@"http://{serverName}.{_Domin}/{ meeting.url}", IsSucess = false,ExMessage=res.Status.Code };
+                            model = new AddUserResultViewModel() { Date = userData.Date, UserName = userData.UserName, url = $@"http://{serverName}.{_Domin}/{ meeting.url}", IsSucess = false,ExMessage=res.Status.Code };
 
                         }
 
@@ -89,20 +89,20 @@ namespace AdobeConectApi.Service
                     }
                     else
                     {
-                        model = new AddUserResultViewModel() { UserName = "",  url = userData.GroupCode, IsSucess = false, ExMessage = "گروه اضافه نشد " };
+                        model = new AddUserResultViewModel() { Date = userData.Date,UserName = userData.UserName,  url = userData.GroupCode, IsSucess = false, ExMessage = "گروه اضافه نشد " };
 
                     }
                 }
                 else
                 {
-                    model = new AddUserResultViewModel() { UserName = "",  url = userData.GroupCode, IsSucess = false, ExMessage = "میتینگ یافت نشد" };
+                    model = new AddUserResultViewModel() { Date = userData.Date, UserName = userData.UserName,  url = userData.GroupCode, IsSucess = false, ExMessage = "میتینگ یافت نشد" };
 
                 }
             }
             catch (Exception ex)
             {
 
-                model = new AddUserResultViewModel() { UserName = "", IsSucess = false, ExMessage = ex.Message };
+                model = new AddUserResultViewModel() { Date = userData.Date, UserName = userData.UserName, url = userData.GroupCode, IsSucess = false, ExMessage = ex.Message };
             }
 
             return model;

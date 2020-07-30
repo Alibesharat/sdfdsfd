@@ -18,6 +18,8 @@
         public string UserName { get; set; }
         public string url { get; set; }
 
+        public string Date { get; set; }
+
 
         public bool IsSucess { get; set; }
 

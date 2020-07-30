@@ -53,8 +53,8 @@ namespace AdobeConnectWebService.Controllers
         public IActionResult FindClass(string UserName)
         {
             var data = _fs.GetUsers(_env.ContentRootPath);
-            var urls = data.Where(c => c.UserName == UserName).Select(c => c.url);
-            return Ok(urls);
+            var infos = data.Where(c => c.UserName == UserName).Select(c => new { c.url,c.Date});
+            return Ok(infos);
         }
 
 
