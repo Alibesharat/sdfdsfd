@@ -34,9 +34,9 @@ namespace AdobeConectApi.Service
             _Password = Password;
         }
 
-        public List<AddUserResultViewModel> AddUserDataToMeeting(UserInfoViewModel userData, List<FileViewModel> meetings)
+        public AddUserResultViewModel AddUserDataToMeeting(UserInfoViewModel userData, List<FileViewModel> meetings)
         {
-            List<AddUserResultViewModel> ls = new List<AddUserResultViewModel>();
+            AddUserResultViewModel model=new AddUserResultViewModel();
 
             try
             {
@@ -53,7 +53,7 @@ namespace AdobeConectApi.Service
                         var SetGroupToMeeting = SetPermmionUserToMeeting(Address, meeting.id, gr.Principal.Principalid);
 
 
-                        var res = AddUser(Address, userData.Name, userData.UserName, userData.Password);
+                        var res = AddUser(Address, userData);
 
                         if (res.Status?.Code == "ok")
                         {
@@ -64,7 +64,7 @@ namespace AdobeConectApi.Service
                                    var state= SetPermmionHostToMeeting(Address, meeting.id, res.Principal.Principalid);
                                     if (state.Status.Code == "ok")
                                     {
-                                        ls.Add(new AddUserResultViewModel() { UserName = userData.UserName, url =$"http://{serverName}.{_Domin}/{ meeting.url}", IsSucess = true });
+                                        model=new AddUserResultViewModel() { UserName = userData.UserName, url =$@"http://{serverName}.{_Domin}/{ meeting.url}", IsSucess = true };
 
                                     }
                                 }
@@ -73,34 +73,40 @@ namespace AdobeConectApi.Service
                                     var result = AddUserToGroup(Address, gr.Principal.Principalid, res.Principal.Principalid);
                                     if (res.Status.Code == "ok")
                                     {
-                                        ls.Add(new AddUserResultViewModel() { UserName = userData.UserName, url = $"http://{serverName}.{_Domin}/{ meeting.url}", IsSucess = true });
+                                        model = new AddUserResultViewModel() { UserName = userData.UserName, url = $@"http://{serverName}.{_Domin}/{ meeting.url}", IsSucess = true };
                                     }
                                 }
 
                             }
+                        }
+                        else
+                        {
+                            model = new AddUserResultViewModel() { UserName = userData.UserName, url = $@"http://{serverName}.{_Domin}/{ meeting.url}", IsSucess = false,ExMessage=res.Status.Code };
+
                         }
 
 
                     }
                     else
                     {
-                        ls.Add(new AddUserResultViewModel() { UserName = "",  url = userData.GroupCode, IsSucess = false, ExMessage = "گروه اضافه نشد " });
+                        model = new AddUserResultViewModel() { UserName = "",  url = userData.GroupCode, IsSucess = false, ExMessage = "گروه اضافه نشد " };
 
                     }
                 }
                 else
                 {
-                    ls.Add(new AddUserResultViewModel() { UserName = "",  url = userData.GroupCode, IsSucess = false, ExMessage = "گروه یافت نشد" });
+                    model = new AddUserResultViewModel() { UserName = "",  url = userData.GroupCode, IsSucess = false, ExMessage = "میتینگ یافت نشد" };
 
                 }
             }
             catch (Exception ex)
             {
 
-                ls.Add(new AddUserResultViewModel() { UserName = "", IsSucess = false, ExMessage = ex.Message });
+                model = new AddUserResultViewModel() { UserName = "", IsSucess = false, ExMessage = ex.Message };
             }
 
-            return ls;
+            return model;
+
         }
 
         private string GetServerName(List<FileViewModel> meetings, string groupCode)
@@ -334,13 +340,13 @@ namespace AdobeConectApi.Service
 
 
 
-        public UserViewModel AddUser(string ServerAddress, string Name, string login, string Password)
+        public UserViewModel AddUser(string ServerAddress, UserInfoViewModel userdata)
         {
             try
             {
-                string parameters = $"&first-name={Name}" +
-               $"&last-name=''&login={login}" +
-               $"&password={Password}&type=user&has-children=0";
+                string parameters = $"&first-name={userdata.Name}" +
+               $"&last-name={userdata.LastName}&login={userdata.UserName}" +
+               $"&password={userdata.Password}&type=user&has-children=0";
                 string url = $"{ServerAddress}{UpdatePrincipalUrl}{parameters}";
                 var data = Client.GetFromXmlAsync<UserViewModel>(url);
                 return data;

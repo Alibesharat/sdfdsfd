@@ -1,10 +1,12 @@
 ﻿using AdobeConectApi.ReadDataViewModel;
-using Microsoft.Extensions.Hosting;
+using AdobeConnectWebService.ApiViewModels;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Serialization;
+using ViewModels;
 
 namespace AdobeConectApi.IO
 {
@@ -12,9 +14,11 @@ namespace AdobeConectApi.IO
     {
 
         string _Path;
-        public FileService(string BasePath)
+        string _UserDataPath;
+        public FileService(string BasePath,string UserDataPath)
         {
             _Path = BasePath;
+            _UserDataPath = UserDataPath;
         }
 
 
@@ -77,7 +81,23 @@ namespace AdobeConectApi.IO
             return lst;
         }
 
-       
+
+
+        public List<AddUserResultViewModel> GetUsers(string rootpath)
+        {
+            string FullPath = Path.Combine(rootpath, "wwwroot", _UserDataPath, "users.json");
+            var users = File.ReadAllLines(FullPath).ToList();
+            var result = string.Join("},", users.ToArray());
+            result = result.Replace("}", "},");
+            result = result.TrimEnd(',');
+            result = $"[{result}]";
+            List<AddUserResultViewModel> ls = JsonSerializer.Deserialize<List<AddUserResultViewModel>>(result);
+           
+            return ls;
+        }
+
+
+
 
         public void LogGetRepeaded()
         {
@@ -117,12 +137,22 @@ namespace AdobeConectApi.IO
         }
 
 
-        public bool WriteFileInJsonAsync(List<LandingViewModel> data, string path)
+        public bool WriteFileInJson(AddUserResultViewModel data, string rootpath,bool IsSuccess)
         {
-            ensurePathExist(path);
-            string json = JsonSerializer.Serialize(data.ToArray());
-            System.IO.File.WriteAllText($@"{path}\users.json", json);
-            Console.WriteLine($"write  data { data.Count}");
+            string FullPath = Path.Combine(rootpath, "wwwroot", _UserDataPath);
+
+            ensurePathExist(FullPath);
+            string jsonData = JsonSerializer.Serialize(data);
+            if (IsSuccess)
+            {
+                File.AppendAllText($@"{FullPath}\users.json", jsonData);
+
+            }
+            else
+            {
+                File.AppendAllText($@"{FullPath}\faild.json", jsonData);
+
+            }
             return true;
 
 

@@ -27,13 +27,14 @@ namespace AdobeConnectWebService
         public void ConfigureServices(IServiceCollection services)
         {
             string baseadress = Configuration.GetSection("baseadress").Value;
+            string UserDataPath = Configuration.GetSection("UserDataPath").Value;
             string username = Configuration.GetSection("user").Value;
             string password = Configuration.GetSection("password").Value;
             string ReadDataPath = Configuration.GetSection("ReadDataPath").Value;
 
 
             services.AddControllers();
-            services.AddSingleton(C => new FileService(ReadDataPath));
+            services.AddSingleton(C => new FileService(ReadDataPath, UserDataPath));
             services.AddSingleton(C => new AdobeConnectService(baseadress, username, password));
             services.AddSwaggerGen();
 

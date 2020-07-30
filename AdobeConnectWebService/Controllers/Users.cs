@@ -4,6 +4,7 @@ using AdobeConnectWebService.ApiViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System.Linq;
 
 namespace AdobeConnectWebService.Controllers
 {
@@ -18,7 +19,7 @@ namespace AdobeConnectWebService.Controllers
         private readonly FileService _fs;
         IHostEnvironment _env;
 
-        public UsersController(ILogger<HomeController> logger, AdobeConnectService ad,FileService fs,IHostEnvironment env)
+        public UsersController(ILogger<HomeController> logger, AdobeConnectService ad, FileService fs, IHostEnvironment env)
         {
             _logger = logger;
             _ad = ad;
@@ -26,13 +27,7 @@ namespace AdobeConnectWebService.Controllers
             _env = env;
         }
 
-        [HttpGet(nameof(Test))]
-        public IActionResult Test()
-        {
-
-            var meetings = _fs.GetMeetings(_env.ContentRootPath);
-            return Ok(meetings);
-        }
+       
 
 
         /// <summary>
@@ -43,8 +38,23 @@ namespace AdobeConnectWebService.Controllers
         public IActionResult AddUser([FromBody] UserInfoViewModel userData)
         {
             var meetings = _fs.GetMeetings(_env.ContentRootPath);
-            var data = _ad.AddUserDataToMeeting(userData,meetings);
+            var data = _ad.AddUserDataToMeeting(userData, meetings);
+            _fs.WriteFileInJson(data, _env.ContentRootPath, data.IsSucess);
             return Ok(data);
+        }
+
+
+
+        /// <summary>
+        /// دریافت آدرس کلاس کاربر
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet(nameof(FindClass))]
+        public IActionResult FindClass(string UserName)
+        {
+            var data = _fs.GetUsers(_env.ContentRootPath);
+            var urls = data.Where(c => c.UserName == UserName).Select(c => c.url);
+            return Ok(urls);
         }
 
 
