@@ -59,6 +59,44 @@ namespace AdobeConnectWebService.Controllers
         }
 
 
+        /// <summary>
+        /// ذخیره یوزر در میتینگ
+        /// </summary>
+        /// <returns></returns>
+        [HttpPost(nameof(AddHosts))]
+        public IActionResult AddHosts()
+        {
+            UserInfoViewModel Admin = new UserInfoViewModel()
+            {
+                IsTeacher = true,
+                Name = "admin",
+                LastName = "admin",
+                UserName = "admin",
+                Password = "Adm!n@ili",
+               
+            };
+            var meetings = _fs.GetMeetings(_env.ContentRootPath);
+            var data = _ad.AddUserDataToAllMeeting(Admin, meetings);
+            _fs.WriteFileInJson(data, _env.ContentRootPath, data.IsSucess);
+
+
+            UserInfoViewModel SuperAdmin = new UserInfoViewModel()
+            {
+                IsTeacher = true,
+                Name = "SuperAdmin",
+                LastName = "SuperAdmin",
+                UserName = "connect@ili.ir",
+                Password = "aD0b3(cOmeT!",
+
+            };
+            var meetingsData= _fs.GetMeetings(_env.ContentRootPath);
+            var SuperAdminData = _ad.AddUserDataToAllMeeting(SuperAdmin, meetingsData);
+            _fs.WriteFileInJson(SuperAdminData, _env.ContentRootPath, data.IsSucess);
+            return Ok(data);
+        }
+
+
+
 
 
     }

@@ -39,6 +39,7 @@ namespace AdobeConectApi
         {
             try
             {
+                
                 var data =  client.GetStringAsync(url).Result;
                 if (data == null) throw new System.Exception($"Can not get data from {url}");
                 var res = data.Serilaze<T>();

@@ -15,7 +15,7 @@ namespace AdobeConectApi.IO
 
         string _Path;
         string _UserDataPath;
-        public FileService(string BasePath,string UserDataPath)
+        public FileService(string BasePath, string UserDataPath)
         {
             _Path = BasePath;
             _UserDataPath = UserDataPath;
@@ -55,12 +55,12 @@ namespace AdobeConectApi.IO
         {
             List<FileViewModel> lst = new List<FileViewModel>();
 
-           
-            string FullPath = Path.Combine(rootpath,"wwwroot", _Path);
-            FileViewModel vm = new FileViewModel();
+
+            string FullPath = Path.Combine(rootpath, "wwwroot", _Path);
+
             foreach (var thisPath in Directory.GetFiles(FullPath))
             {
-
+                FileViewModel vm = new FileViewModel();
                 string filename = Path.GetFileNameWithoutExtension(thisPath);
                 vm.ServerName = filename;
                 try
@@ -92,7 +92,7 @@ namespace AdobeConectApi.IO
             result = result.TrimEnd(',');
             result = $"[{result}]";
             List<AddUserResultViewModel> ls = JsonSerializer.Deserialize<List<AddUserResultViewModel>>(result);
-           
+
             return ls;
         }
 
@@ -137,7 +137,7 @@ namespace AdobeConectApi.IO
         }
 
 
-        public bool WriteFileInJson(AddUserResultViewModel data, string rootpath,bool IsSuccess)
+        public bool WriteFileInJson(AddUserResultViewModel data, string rootpath, bool IsSuccess)
         {
             string FullPath = Path.Combine(rootpath, "wwwroot", _UserDataPath);
 
